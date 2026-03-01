@@ -1,0 +1,22 @@
+{
+  "name": "namastenode",
+  "version": "1.0.0",
+  "description": "This repo is created to practise nodejs concept",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon src/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ladhane/namasteNode.git"
+  },
+  "author": "Mayuri Ladhane",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ladhane/namasteNode/issues"
+  },
+  "homepage": "https://github.com/ladhane/namasteNode#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

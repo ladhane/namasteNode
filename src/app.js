@@ -8,6 +8,14 @@ server.use(express.json());
 server.post('/signup', async(req,res)=>{
     const user = new User(req.body);
     try {
+        const ALLOWED_FIELDS = ['firstName','lastName','email','password','gender','age','about','skills','photoUrl',];
+        const IS_ALLOWED_SIGNUP = Object.keys(user).every((k)=>{
+            ALLOWED_FIELDS.includes(k);
+        })
+
+        if(!IS_ALLOWED_SIGNUP){
+            throw new Error ('Not able to signup due to unnecessary data')
+        }
         await user.save();
         res.send('Data saved successfully');
     }catch (err){
@@ -60,21 +68,32 @@ server.delete('/user',async(req,res)=>{
 })
 
 //API to UPDATE a user
-server.patch('/user',async(req,res)=>{
+server.patch('/user/:userId',async(req,res)=>{
     try{
-        // const userId = req.body.userId;
+        const data = req.body;
+        const userId = req.params.userId;
+        const ALLOWED_FIELDS = ['age','gender','about','skills','photoUrl'];
+        const IS_ALLOWED_UPDATE = Object.keys(data).every((k)=>{
+           return ALLOWED_FIELDS.includes(k);
+        })
+        if(!IS_ALLOWED_UPDATE){
+            throw new Error ('Not able to update due to bad data')
+        }
+        if(data.skills?.length > 10){
+            throw new Error ('Exceeded the no. of skills')
+        }
         // 3rd param here is options where we can pass multiple things like new with value as
         //'false' -> to return data before update
         //'true' -> to return data after update
         // false is default value
         // We have other options like sort,etc. refer documentation to know about them
-        const user = await User.findByIdAndUpdate(userId, req.body);
+        const user = await User.findByIdAndUpdate(userId, data ,{ returnDocument : 'after', runValidators : true});
 
         //with findOneAndUpdate we can use any parameter to find the document instead of ID
         // const user = await User.findOneAndUpdate({email:req.body.emailId},req.body,{ returnDocument: 'after', runValidators: true});
         res.send(user);
     }catch(err){
-        res.status(400).send('Update Error Message : ' + err.message)
+        res.status(400).send('Update Failed : ' + err.message)
     }
 })
 

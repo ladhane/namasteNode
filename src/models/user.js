@@ -39,7 +39,8 @@ const userSchema = new mongoose.Schema({
     },
     photoUrl:{
         type: String,
-        default: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'
+        default: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png',
+        maxLength: 2560
     },
     age:{
         type: Number,
@@ -51,7 +52,7 @@ const userSchema = new mongoose.Schema({
         default: 'Hey there! I am on DevSocial.'
     }, 
     skills:{
-        type: [String],
+        type: [String]
     }
 },
 {

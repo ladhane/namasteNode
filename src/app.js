@@ -1,21 +1,35 @@
 const express = require ('express');
+const bcrypt = require('bcrypt');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 const connectDB = require('./config/database');
+const { userAuth } = require('./middlewares/auth')
 const User = require('./models/user')
+const { validateSignUpData } = require('./utils/validate')
 const server = express();
 
 server.use(express.json());
+server.use(cookieParser());
 //APT to signup
 server.post('/signup', async(req,res)=>{
-    const user = new User(req.body);
     try {
-        const ALLOWED_FIELDS = ['firstName','lastName','email','password','gender','age','about','skills','photoUrl',];
-        const IS_ALLOWED_SIGNUP = Object.keys(user).every((k)=>{
-            ALLOWED_FIELDS.includes(k);
-        })
-
-        if(!IS_ALLOWED_SIGNUP){
-            throw new Error ('Not able to signup due to unnecessary data')
-        }
+        //validate our data
+        validateSignUpData(req)
+        //encryt our data
+        const encryptedPassword = await bcrypt.hash(req.body.password,10);
+        console.log(encryptedPassword);
+        //save the data
+        const user = new User({
+            firstName: req.body.firstName,
+            lastName: req.body.lastName,
+            email: req.body.email,
+            password: encryptedPassword,
+            age: req.body.age,
+            gender: req.body.gender,
+            photoUrl: req.body.photoUrl,
+            skills: req.body.skills,
+            about: req.body.about
+        });
         await user.save();
         res.send('Data saved successfully');
     }catch (err){
@@ -23,77 +37,45 @@ server.post('/signup', async(req,res)=>{
     }
 })
 
-//API to GET a user
-server.get('/user',async(req,res)=>{
+//API to login
+server.post('/login',async(req,res)=>{
     try{
-        const emailId = req.body.email;
-        const user = await User.findOne({email:emailId});
+        const { email, password } = req.body;
+        const user = await User.findOne({email: email});
         if(!user){
-             res.send('User not found');
+            throw new Error('Invalid Credentials');
         }else{
-             res.send(user);
+            const isValidPassword = await bcrypt.compare(password,user.password);
+            if(isValidPassword){
+                //Send a jwt token
+                const token = await jwt.sign({_id : user.id},"Dev@Social#123",{expiresIn : '1h'});
+                res.cookie("token",token,{expires : new Date(Date.now() + 24*60*60*1000)});
+                res.send('User logged in successfully') 
+            }else{
+                throw new Error('Invalid Credentials')
+            }
         }
     }catch(err){
-        res.status(400).send('Something went wrong!')
+        res.status(400).send('ERROR : '+ err.message)
+    }
+});
+
+//API to GET profile
+server.get('/profile',userAuth,async(req,res)=>{
+    try{
+            const user = req.user;
+            res.send(user)
+    }catch(err){
+        res.status(400).send('ERROR:'+ err.message);
     }
 })
 
-//API to GET all the users
-server.get('/feed',async(req,res)=>{
+server.post('/sendConnectionRequest', userAuth, async(req,res,next)=>{
     try{
-        const users = await User.find({});
-        console.log(users);
-        console.log("length",users.length);
-        if(users.length === 0){
-             res.send('User not found');
-        }else{
-             res.send(users);
-        }
+        const user = req.user;
+        res.send(user.firstName + ' sent a connection request');
     }catch(err){
-        res.status(400).send('Something went wrong!')
-    }
-})
-
-//API to DELETE a user 
-server.delete('/user',async(req,res)=>{
-    try{
-        const userId = req.body.userId
-        // const user = await User.findOneAndDelete({_id:userId})
-        //Other way of doing it
-        const user = await User.findByIdAndDelete(userId)
-        res.send(user)
-    } catch(err){
-        res.status(400).send('Something went wrong')
-    }
-})
-
-//API to UPDATE a user
-server.patch('/user/:userId',async(req,res)=>{
-    try{
-        const data = req.body;
-        const userId = req.params.userId;
-        const ALLOWED_FIELDS = ['age','gender','about','skills','photoUrl'];
-        const IS_ALLOWED_UPDATE = Object.keys(data).every((k)=>{
-           return ALLOWED_FIELDS.includes(k);
-        })
-        if(!IS_ALLOWED_UPDATE){
-            throw new Error ('Not able to update due to bad data')
-        }
-        if(data.skills?.length > 10){
-            throw new Error ('Exceeded the no. of skills')
-        }
-        // 3rd param here is options where we can pass multiple things like new with value as
-        //'false' -> to return data before update
-        //'true' -> to return data after update
-        // false is default value
-        // We have other options like sort,etc. refer documentation to know about them
-        const user = await User.findByIdAndUpdate(userId, data ,{ returnDocument : 'after', runValidators : true});
-
-        //with findOneAndUpdate we can use any parameter to find the document instead of ID
-        // const user = await User.findOneAndUpdate({email:req.body.emailId},req.body,{ returnDocument: 'after', runValidators: true});
-        res.send(user);
-    }catch(err){
-        res.status(400).send('Update Failed : ' + err.message)
+        res.status(400).send('ERROR: ' + err.message)
     }
 })
 

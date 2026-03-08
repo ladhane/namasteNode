@@ -17,7 +17,11 @@
   },
   "homepage": "https://github.com/ladhane/namasteNode#readme",
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
     "express": "^5.2.1",
-    "mongoose": "^9.2.3"
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.2.3",
+    "validator": "^13.15.26"
   }
 }

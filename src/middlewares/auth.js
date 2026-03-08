@@ -1,28 +1,27 @@
-const isAdminAuthenticated = (req,res,next) => {
-    console.log("coming here")
-    let token = 'adminmnxc';
-    const authenticated = token === 'admin'
-    console.log('isAdminAuthenticated',authenticated)
-    if(!authenticated){
-        res.status(403).send('something went wrong')
-    } else {
-        next()
-    }
-}
+const jwt = require('jsonwebtoken');
+const User = require('../models/user');
 
-const isUserValid = (req,res,next) => {
-    console.log("in middleware")
-    let user = "mayuri";
-    const isValidUser = user === "mayuri";
-    console.log("isValidUser",isValidUser)
-    if(!isValidUser){
-        res.status(403).send("Not a Valid user")
-    } else {
-        next()
+const userAuth = async (req,res,next) => {
+    try{
+        const { token } = req.cookies;
+        if(!token){
+            throw new Error('Token is not Valid!')
+        }
+        const decodedObj = await jwt.verify(token,"Dev@Social#123");
+
+        const {_id} = decodedObj;
+        const user = await User.findById(_id);
+        if(!user){
+            throw new Error("User Not Found");
+        }
+        req.user = user;
+        next();
+        
+    }catch(err){
+        res.status(400).send("ERROR: " + err.message)
     }
 }
 
 module.exports = {
-    isAdminAuthenticated,
-    isUserValid
+    userAuth
 }
